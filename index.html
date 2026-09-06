@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e1211">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+<title>Baanmeter</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0e1211; color: #fff;
+    display: flex; flex-direction: column;
+    padding: max(14px, env(safe-area-inset-top)) 18px max(16px, env(safe-area-inset-bottom));
+    user-select: none; -webkit-user-select: none; overflow: hidden;
+  }
+  header { display: flex; justify-content: space-between; align-items: baseline; flex: 0 0 auto; }
+  h1 { font-size: 14px; font-weight: 600; letter-spacing: 2.5px; color: rgba(255,255,255,.5); }
+  #acc { font-size: 12px; color: rgba(255,255,255,.4); font-variant-numeric: tabular-nums; }
+  #acc.good { color: #6ec59a; }
+  #acc.bad { color: #e0a030; }
+
+  main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+  /* ---- start ---- */
+  #startView { flex: 1; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; }
+  #dropBtn {
+    width: 100%; max-width: 430px; border: 0; border-radius: 20px;
+    background: #175E54; color: #fff; font-weight: 700;
+    font-size: 24px; padding: 42px 20px; letter-spacing: .3px;
+    transition: transform .1s;
+  }
+  #dropBtn:active { transform: scale(.97); }
+  #dropBtn:disabled { background: #232826; color: rgba(255,255,255,.3); }
+  .hint { font-size: 13px; color: rgba(255,255,255,.45); text-align: center; line-height: 1.55; max-width: 300px; }
+
+  /* ---- live ---- */
+  #liveView { display: none; flex: 1; flex-direction: column; min-height: 0; }
+  #map {
+    flex: 1 1 auto; min-height: 0; border-radius: 16px; margin: 10px 0 4px;
+    background: #1a1f1d; /* tiles weg? dan blijft het gewoon een radar */
+  }
+  .leaflet-container { font: inherit; background: #1a1f1d; }
+  /* OSM-tiles zijn licht — invert maakt er een kalme donkere kaart van */
+  .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(.8) saturate(.45) contrast(.9); }
+  .leaflet-control-attribution { background: rgba(14,18,17,.7) !important; color: rgba(255,255,255,.4) !important; font-size: 9px !important; }
+  .leaflet-control-attribution a { color: rgba(255,255,255,.55) !important; }
+  .boat-icon { filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+
+  #numbers { flex: 0 0 auto; text-align: left; }
+  .lbl { font-size: 10.5px; font-weight: 600; letter-spacing: 1.6px; color: rgba(255,255,255,.42); }
+  #km { font-size: min(19vw, 92px); line-height: 1.02; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
+  #km small { font-size: .38em; font-weight: 500; color: rgba(255,255,255,.5); letter-spacing: 0; }
+  #nm { font-size: min(7.5vw, 34px); font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.78); }
+  #nm small { font-size: .6em; color: rgba(255,255,255,.42); font-weight: 500; }
+
+  #target {
+    margin-top: 14px; padding: 13px 15px; border-radius: 13px;
+    background: rgba(255,255,255,.07); display: flex; align-items: center; gap: 9px;
+    font-variant-numeric: tabular-nums; transition: background .3s;
+  }
+  #target.hit { background: rgba(46,125,79,.4); }
+  #target .delta { margin-left: auto; font-weight: 700; font-size: 16.5px; }
+  #target.hit .delta { color: #7ee2a8; }
+  #targetInput {
+    width: 72px; background: transparent; border: 0; border-bottom: 1px solid rgba(255,255,255,.3);
+    color: #fff; font-size: 16px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums;
+  }
+  #targetInput:focus { outline: none; border-color: #fff; }
+  .unit { font-size: 14px; color: rgba(255,255,255,.6); }
+
+  footer { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  #bearingTxt { font-size: 13px; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }
+  #resetBtn {
+    margin-left: auto; border: 1px solid rgba(255,155,142,.35); background: transparent; color: #ff9b8e;
+    border-radius: 12px; padding: 11px 18px; font-size: 14px; font-weight: 600;
+  }
+  #err { color: #e0a030; font-size: 13px; text-align: center; margin-top: 10px; display: none; line-height: 1.5; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BAANMETER</h1>
+  <span id="acc">gps zoeken…</span>
+</header>
+
+<main>
+  <div id="startView">
+    <button id="dropBtn" disabled>MARKEER PUNT</button>
+    <p class="hint">Druk op het moment dat je de boei dropt.<br>Daarna zie je live hoe ver je van dat punt vaart — tot op de meter.</p>
+  </div>
+
+  <div id="liveView">
+    <div id="map"></div>
+
+    <div id="numbers">
+      <span class="lbl">AFSTAND TOT PUNT</span>
+      <div id="km">0.000<small> km</small></div>
+      <div id="nm">0.00<small> NM</small></div>
+
+      <div id="target">
+        <span class="lbl">DOEL</span>
+        <input id="targetInput" type="number" inputmode="decimal" step="0.05" min="0.05" value="1.800">
+        <span class="unit">km</span>
+        <span class="delta" id="delta">–</span>
+      </div>
+    </div>
+
+    <footer>
+      <span id="bearingTxt">peiling: –</span>
+      <button id="resetBtn">Nieuw punt</button>
+    </footer>
+  </div>
+</main>
+<p id="err"></p>
+
+<script>
+"use strict";
+// Baanmeter — wedstrijdbanen uitleggen op exacte lengte.
+// Punt markeren → live afstand (km 3 dec / NM 2 dec) + radarweergave:
+// het punt in het midden, afstandsringen, de boot als driehoek met spoor.
+const $ = id => document.getElementById(id);
+let mark = null;      // {lat, lon}
+let cur = null;       // laatste fix {lat, lon}
+let course = null;    // vaarrichting in graden (uit GPS)
+let trail = [];       // [{lat, lon, t}]
+let wakeLock = null;
+
+const R = 6371000;
+function distM(a, b) {
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLon = (b.lon - a.lon) * Math.PI / 180;
+  const s = Math.sin(dLat/2)**2 +
+    Math.cos(a.lat*Math.PI/180) * Math.cos(b.lat*Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+function bearingDeg(a, b) {
+  const f1 = a.lat*Math.PI/180, f2 = b.lat*Math.PI/180, dl = (b.lon-a.lon)*Math.PI/180;
+  const y = Math.sin(dl)*Math.cos(f2);
+  const x = Math.cos(f1)*Math.sin(f2) - Math.sin(f1)*Math.cos(f2)*Math.cos(dl);
+  return (Math.atan2(y,x)*180/Math.PI + 360) % 360;
+}
+const CARD = ["N","NNO","NO","ONO","O","OZO","ZO","ZZO","Z","ZZW","ZW","WZW","W","WNW","NW","NNW"];
+
+// ---------- kaart-radar ----------
+// Echte kaart als ondergrond (weet je waar je vaart), met de radar-laag
+// erop: 500m-ringen, doelring, boei, boot + spoor. Geen tiles (geen
+// bereik)? Dan blijft het gewoon een donkere radar — alles blijft werken.
+let map = null, ringLayers = [], targetRing = null, trailLine = null, markDot = null, boatMarker = null;
+let fittedForTarget = 0;
+
+function boatSvg(deg) {
+  return L.divIcon({
+    className: "boat-icon",
+    html: '<svg width="24" height="24" viewBox="-12 -12 24 24" style="transform:rotate(' + deg + 'deg)"><path d="M0,-10 L7,8 L-7,8 Z" fill="#7ee2a8" stroke="#0e1211" stroke-width="1.5"/></svg>',
+    iconSize: [24, 24], iconAnchor: [12, 12],
+  });
+}
+
+function initMap() {
+  if (map || typeof L === "undefined" || !mark) return;
+  map = L.map("map", { zoomControl: false });
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap",
+    maxZoom: 19,
+  }).addTo(map);
+  markDot = L.circleMarker([mark.lat, mark.lon], {
+    radius: 7, color: "#0e1211", weight: 2, fillColor: "#e0a030", fillOpacity: 1, interactive: false,
+  }).addTo(map);
+  trailLine = L.polyline([], { color: "rgba(255,255,255,.55)", weight: 2, interactive: false }).addTo(map);
+  boatMarker = L.marker([mark.lat, mark.lon], { icon: boatSvg(0), interactive: false }).addTo(map);
+  map.setView([mark.lat, mark.lon], 14);
+}
+
+function updateMap() {
+  if (!mark || !cur) return;
+  initMap();
+  if (!map) return;
+  const targetM = (parseFloat($("targetInput").value) || 1.8) * 1000;
+
+  // 500m-ringen rond het punt, tot net voorbij doel/afstand
+  const wanted = Math.ceil(Math.max(targetM * 1.25, distM(mark, cur) * 1.15, 500) / 500);
+  if (ringLayers.length !== wanted) {
+    ringLayers.forEach(r => r.remove());
+    ringLayers = [];
+    for (let i = 1; i <= wanted; i++) {
+      ringLayers.push(L.circle([mark.lat, mark.lon], {
+        radius: i * 500, color: "rgba(255,255,255,.22)", weight: 1, fill: false, interactive: false,
+      }).addTo(map));
+    }
+  }
+  ringLayers.forEach(r => r.setLatLng([mark.lat, mark.lon]));
+
+  if (!targetRing) {
+    targetRing = L.circle([mark.lat, mark.lon], {
+      radius: targetM, color: "#7ee2a8", weight: 1.5, dashArray: "6 5", fill: false, opacity: .8, interactive: false,
+    }).addTo(map);
+  }
+  targetRing.setLatLng([mark.lat, mark.lon]);
+  if (targetRing.getRadius() !== targetM) targetRing.setRadius(targetM);
+
+  markDot.setLatLng([mark.lat, mark.lon]);
+  trailLine.setLatLngs(trail.map(p => [p.lat, p.lon]));
+
+  // vaarrichting: GPS-heading, anders uit de laatste twee spoorpunten
+  let hdg = course;
+  if (hdg == null && trail.length > 1) {
+    hdg = bearingDeg(trail[trail.length - 2], trail[trail.length - 1]);
+  }
+  boatMarker.setLatLng([cur.lat, cur.lon]);
+  boatMarker.setIcon(boatSvg(hdg ?? 0));
+
+  // eenmalig (en bij doelwijziging) alles in beeld; daarna is de kaart van de gebruiker
+  if (fittedForTarget !== targetM) {
+    fittedForTarget = targetM;
+    map.fitBounds(targetRing.getBounds().pad(0.08));
+  }
+}
+
+// ---------- ui ----------
+function render() {
+  if (!mark || !cur) return;
+  const m = distM(mark, cur);
+  $("km").innerHTML = (m/1000).toFixed(3) + "<small> km</small>";
+  $("nm").innerHTML = (m/1852).toFixed(2) + "<small> NM</small>";
+
+  const targetM = parseFloat($("targetInput").value || "0") * 1000;
+  if (targetM > 0) {
+    const diff = targetM - m;
+    const hit = Math.abs(diff) <= 15; // binnen 15 m = raak (gps is toch ±5 m)
+    $("target").classList.toggle("hit", hit);
+    $("delta").textContent = hit ? "✓ hier droppen" :
+      (diff > 0 ? "nog " + Math.round(diff) + " m" : Math.round(-diff) + " m voorbij");
+  } else {
+    $("delta").textContent = "–";
+  }
+
+  const b = bearingDeg(cur, mark);
+  $("bearingTxt").textContent = "peiling naar punt: " + CARD[Math.round(b/22.5) % 16] + " " + Math.round(b) + "°";
+  updateMap();
+}
+
+function onFix(pos) {
+  cur = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+  if (Number.isFinite(pos.coords.heading)) course = pos.coords.heading;
+  const acc = pos.coords.accuracy;
+  $("acc").textContent = "gps ±" + Math.round(acc) + " m";
+  $("acc").classList.toggle("good", acc <= 8);
+  $("acc").classList.toggle("bad", acc > 15);
+  $("dropBtn").disabled = false;
+  $("err").style.display = "none";
+
+  if (mark) {
+    const last = trail[trail.length - 1];
+    if (!last || Date.now() - last.t > 3000) {
+      trail.push({ ...cur, t: Date.now() });
+      if (trail.length > 800) trail.splice(0, 200);
+    }
+  }
+  render();
+}
+function onErr(e) {
+  $("err").style.display = "block";
+  $("err").textContent = e.code === 1
+    ? "Geen toestemming voor locatie — zet locatietoegang aan voor deze site."
+    : "Geen GPS-fix. Ga naar buiten / check je locatie-instellingen.";
+}
+
+// ?demo — laat de app varen zonder GPS (voor op de bank)
+if (new URLSearchParams(location.search).has("demo")) {
+  mark = { lat: 52.3300, lon: 5.0900 };
+  course = 12;
+  trail = [];
+  let step = 0;
+  const demoTick = () => {
+    step = Math.min(step + 1, 46);
+    const p = {
+      lat: 52.3300 + 0.01530 * step / 40,
+      lon: 5.0900 + 0.0028 * Math.sin(step / 40 * Math.PI * 1.2),
+    };
+    cur = p;
+    trail.push({ ...p, t: Date.now() });
+    $("acc").textContent = "demo · gps ±4 m";
+    $("acc").classList.add("good");
+    $("startView").style.display = "none";
+    $("liveView").style.display = "flex";
+    render();
+  };
+  demoTick();
+  setInterval(demoTick, 800);
+} else {
+  navigator.geolocation.watchPosition(onFix, onErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+}
+
+async function keepAwake() {
+  try { wakeLock = await navigator.wakeLock.request("screen"); } catch (_) {}
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") keepAwake();
+});
+keepAwake();
+
+$("dropBtn").addEventListener("click", () => {
+  if (!cur) return;
+  mark = { ...cur };
+  trail = [{ ...cur, t: Date.now() }];
+  localStorage.setItem("baanmeter-mark", JSON.stringify(mark));
+  $("startView").style.display = "none";
+  $("liveView").style.display = "flex";
+  if (navigator.vibrate) navigator.vibrate(80);
+  render();
+});
+$("resetBtn").addEventListener("click", () => {
+  if (!confirm("Punt wissen en opnieuw beginnen?")) return;
+  mark = null; trail = [];
+  localStorage.removeItem("baanmeter-mark");
+  $("liveView").style.display = "none";
+  $("startView").style.display = "flex";
+});
+$("targetInput").addEventListener("input", render);
+window.addEventListener("resize", () => map && map.invalidateSize());
+
+// punt overleeft een refresh (zon + natte handen + safari…)
+const saved = localStorage.getItem("baanmeter-mark");
+if (saved) {
+  try {
+    mark = JSON.parse(saved);
+    $("startView").style.display = "none";
+    $("liveView").style.display = "flex";
+  } catch (_) {}
+}
+</script>
+</body>
+</html>
