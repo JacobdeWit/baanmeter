@@ -29,9 +29,22 @@
   #acc.bad { color: #e0a030; }
 
   main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #mapWrap { flex: 1 1 auto; min-height: 0; position: relative; margin: 10px 0 4px; }
   #map {
-    flex: 1 1 auto; min-height: 0; border-radius: 16px; margin: 10px 0 4px;
+    position: absolute; inset: 0; border-radius: 16px;
     background: #1a1f1d; /* tiles weg? dan blijft het gewoon een radar */
+  }
+  /* kompas: waar kijk ik heen — naald draait mee met de telefoon */
+  #compass { position: absolute; top: 10px; right: 10px; z-index: 800; width: 60px; text-align: center; cursor: pointer; }
+  #compassBadge {
+    width: 46px; height: 46px; margin: 0 auto; border-radius: 50%;
+    background: rgba(14,18,17,.82); border: 1px solid rgba(255,255,255,.22);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #needle { transition: transform .2s; }
+  #compassTxt {
+    font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,.75); margin-top: 3px;
+    font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px #000;
   }
   .leaflet-container { font: inherit; background: #1a1f1d; }
   /* OSM-tiles zijn licht — invert maakt er een kalme donkere kaart van */
@@ -100,7 +113,17 @@
 </header>
 
 <main>
-  <div id="map"></div>
+  <div id="mapWrap">
+    <div id="map"></div>
+    <div id="compass">
+      <div id="compassBadge">
+        <svg id="needle" width="26" height="26" viewBox="-13 -13 26 26">
+          <path d="M0,-10 L5.5,8 L0,4.5 L-5.5,8 Z" fill="#7ee2a8"/>
+        </svg>
+      </div>
+      <div id="compassTxt">kompas</div>
+    </div>
+  </div>
 
   <div id="panel">
     <span class="lbl" id="panelLbl">BOEI 1</span>
@@ -274,7 +297,8 @@ function updateMap() {
 
   trailLine.setLatLngs(trail.map(p => [p.lat, p.lon]));
 
-  let hdg = course;
+  // richting bootje: GPS-koers (varen) → kompas (stilliggen) → spoor
+  let hdg = course ?? compassDeg;
   if (hdg == null && trail.length > 1) hdg = bearingDeg(trail[trail.length-2], trail[trail.length-1]);
   boatMarker.setLatLng([cur.lat, cur.lon]);
   boatMarker.setIcon(boatSvg(hdg ?? 0));
@@ -414,6 +438,45 @@ function onErr(e) {
     : "Geen GPS-fix. Ga naar buiten / check je locatie-instellingen.";
 }
 
+// ---------- kompas ----------
+// iOS wil expliciete toestemming (na een tik), Android geeft de sensor direct.
+// De naald draait naar waar de telefoon heen wijst; het bootje gebruikt 'm
+// ook als er geen GPS-koers is (stilliggen).
+let compassDeg = null, compassActive = false, compassQueued = false;
+
+function paintCompass() {
+  compassQueued = false;
+  if (compassDeg == null) return;
+  $("needle").style.transform = "rotate(" + compassDeg + "deg)";
+  $("compassTxt").textContent = CARD[Math.round(compassDeg / 22.5) % 16] + " " + Math.round(compassDeg) + "°";
+  if (boatMarker) updateMap(); // bootje mag meedraaien bij stilliggen
+}
+function onOrient(e) {
+  let h = null;
+  if (typeof e.webkitCompassHeading === "number") h = e.webkitCompassHeading; // iOS
+  else if (e.alpha != null && (e.absolute || e.type === "deviceorientationabsolute")) h = (360 - e.alpha) % 360;
+  if (h == null) return;
+  compassDeg = h;
+  if (!compassQueued) { compassQueued = true; requestAnimationFrame(paintCompass); }
+}
+function startCompass() {
+  if (compassActive) return;
+  const attach = () => {
+    compassActive = true;
+    window.addEventListener("deviceorientationabsolute", onOrient);
+    window.addEventListener("deviceorientation", onOrient);
+  };
+  const D = window.DeviceOrientationEvent;
+  if (D && typeof D.requestPermission === "function") {
+    D.requestPermission().then(s => { if (s === "granted") attach(); }).catch(() => {});
+  } else {
+    attach();
+  }
+}
+$("compass").addEventListener("click", startCompass);
+// geen permissieprompt nodig (Android/desktop)? Dan meteen aanzetten
+if (!(window.DeviceOrientationEvent && DeviceOrientationEvent.requestPermission)) startCompass();
+
 async function keepAwake() {
   try { wakeLock = await navigator.wakeLock.request("screen"); } catch (_) {}
 }
@@ -468,6 +531,7 @@ if (new URLSearchParams(location.search).has("demo")) {
   wind = { kn: 14, deg: 25 };
   $("wind").textContent = "14 kn uit NNO";
   $("axisBtn").style.display = "";
+  compassDeg = 25; compassQueued = true; paintCompass();
   marks = [];
   let step = -3;
   const demoTick = () => {
