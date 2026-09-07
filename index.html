@@ -64,10 +64,10 @@
 
   #panel { flex: 0 0 auto; }
   .lbl { font-size: 10.5px; font-weight: 600; letter-spacing: 1.6px; color: rgba(255,255,255,.42); }
-  #km { font-size: min(16.5vw, 84px); line-height: 1.02; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
+  #km { font-size: min(13.5vw, 66px); line-height: 1.05; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -1.5px; }
   #km small { font-size: .38em; font-weight: 500; color: rgba(255,255,255,.5); letter-spacing: 0; }
-  #sub { font-size: min(6.5vw, 26px); font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.78); }
-  #sub small { font-size: .65em; color: rgba(255,255,255,.42); font-weight: 500; }
+  #km .paren { font-size: .3em; font-weight: 500; color: rgba(255,255,255,.42); letter-spacing: 0; }
+  #sub { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.6); }
 
   #target {
     margin-top: 12px; padding: 12px 15px; border-radius: 13px;
@@ -395,7 +395,7 @@ function render() {
     $("panelLbl").textContent = "BOEI 1";
     $("km").classList.add("status");
     $("km").innerHTML = cur ? "Klaar om te markeren — kies je baan" : "Vaar naar de plek voor boei 1";
-    $("sub").textContent = "";
+    $("sub").style.display = "none";
     $("target").style.display = "none";
     $("presets").style.display = "flex"; // baan kiezen kan al vóór het droppen
     $("actionBtn").textContent = "MARKEER BOEI 1";
@@ -406,8 +406,8 @@ function render() {
     const m = distM(marks[0], cur);
     $("km").classList.remove("status");
     $("panelLbl").textContent = "AFSTAND TOT BOEI 1";
-    $("km").innerHTML = (m/1000).toFixed(3) + "<small> km</small>";
-    $("sub").innerHTML = (m/1852).toFixed(2) + "<small> NM</small>";
+    $("km").innerHTML = (m/1000).toFixed(3) + "<small> km</small> <span class='paren'>(" + (m/1852).toFixed(2) + " NM)</span>";
+    $("sub").style.display = "none";
     $("target").style.display = "flex";
     $("presets").style.display = "flex";
     $("actionBtn").textContent = "MARKEER BOEI 2";
@@ -436,10 +436,13 @@ function render() {
     const len = distM(marks[0], marks[1]);
     $("km").classList.remove("status");
     $("panelLbl").textContent = "BAANLENGTE · BOEI 1 ↔ BOEI 2";
-    $("km").innerHTML = (len/1000).toFixed(3) + "<small> km</small>";
-    let subTxt = (len/1852).toFixed(2) + "<small> NM</small>";
-    if (cur) subTxt += '<small>   ·   ' + Math.round(distM(marks[1], cur)) + " m tot boei 2</small>";
-    $("sub").innerHTML = subTxt;
+    $("km").innerHTML = (len/1000).toFixed(3) + "<small> km</small> <span class='paren'>(" + (len/1852).toFixed(2) + " NM)</span>";
+    if (cur) {
+      $("sub").style.display = "";
+      $("sub").textContent = Math.round(distM(marks[1], cur)) + " m tot boei 2";
+    } else {
+      $("sub").style.display = "none";
+    }
     $("target").style.display = "none";
     $("presets").style.display = "none";
     $("actionBtn").textContent = "NIEUWE BAAN";
