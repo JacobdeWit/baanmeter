@@ -166,6 +166,7 @@ const CARD = ["N","NNO","NO","ONO","O","OZO","ZO","ZZO","Z","ZZW","ZW","WZW","W"
 // ---------- kaart ----------
 let map = null, tiles = null;
 let markDots = [], legLine = null, courseLine = null, lenLabel = null, axisLine = null, trailLine = null, boatMarker = null;
+let suggestMarker = null; // spookboei: het voorstel voor boei 2, upwind op doelafstand
 let didInitialCenter = false;
 
 function boatSvg(deg) {
@@ -234,8 +235,8 @@ function updateMap() {
   }
 
   // windas door boei 1 — de lijn waarlangs je een baan hoort te leggen
+  const targetM = (parseFloat($("targetInput").value) || 1.8) * 1000;
   if (axisOn && wind && marks.length >= 1) {
-    const targetM = (parseFloat($("targetInput").value) || 1.8) * 1000;
     const len = Math.max(targetM * 1.4, 1500);
     const p1 = destPoint(marks[0], wind.deg, len);            // naar de wind toe (upwind)
     const p2 = destPoint(marks[0], (wind.deg+180)%360, len);  // van de wind af
@@ -245,6 +246,30 @@ function updateMap() {
     axisLine.setLatLngs([[p1.lat, p1.lon], [marks[0].lat, marks[0].lon], [p2.lat, p2.lon]]);
   } else if (axisLine) {
     axisLine.remove(); axisLine = null;
+  }
+
+  // spookboei: voorstel voor boei 2 — doelafstand recht upwind van boei 1
+  if (axisOn && wind && marks.length === 1 && targetM > 0) {
+    const sug = destPoint(marks[0], wind.deg, targetM);
+    if (!suggestMarker) {
+      suggestMarker = L.marker([0, 0], {
+        icon: L.divIcon({
+          className: "",
+          html: '<div style="width:90px;margin-left:-45px;margin-top:-11px;text-align:center">' +
+                '<svg width="22" height="22" viewBox="-11 -11 22 22"><circle r="8" fill="rgba(140,190,255,.15)" stroke="#8cbeff" stroke-width="1.5" stroke-dasharray="3.5 3"/></svg>' +
+                '<div class="lenlabel" style="color:#8cbeff;border-color:rgba(140,190,255,.4);display:inline-block">voorstel 2</div></div>',
+          iconSize: null, iconAnchor: [0, 0],
+        }),
+        interactive: false,
+      }).addTo(map);
+      // breng boei 1 én het voorstel samen in beeld — ná layout, anders
+      // rekent Leaflet de zoom uit op een container zonder maat
+      const b = L.latLngBounds([marks[0].lat, marks[0].lon], [sug.lat, sug.lon]).pad(0.18);
+      setTimeout(() => { map.invalidateSize(); map.fitBounds(b); }, 80);
+    }
+    suggestMarker.setLatLng([sug.lat, sug.lon]);
+  } else if (suggestMarker) {
+    suggestMarker.remove(); suggestMarker = null;
   }
 
   trailLine.setLatLngs(trail.map(p => [p.lat, p.lon]));
@@ -301,8 +326,18 @@ function render() {
       $("delta").textContent = hit ? "✓ hier droppen" :
         (diff > 0 ? "nog " + Math.round(diff) + " m" : Math.round(-diff) + " m voorbij");
     }
-    const b = bearingDeg(cur, marks[0]);
-    $("bearingTxt").textContent = "peiling boei 1: " + CARD[Math.round(b/22.5)%16] + " " + Math.round(b) + "°";
+    // met wind erbij is de spookboei de actie: koers + afstand ernaartoe
+    if (axisOn && wind && targetM > 0) {
+      const sug = destPoint(marks[0], wind.deg, targetM);
+      const dSug = distM(cur, sug);
+      const bSug = bearingDeg(cur, sug);
+      $("bearingTxt").textContent = "→ voorstel boei 2: " +
+        (dSug < 1000 ? Math.round(dSug) + " m" : (dSug/1000).toFixed(2) + " km") +
+        " richting " + CARD[Math.round(bSug/22.5)%16] + " " + Math.round(bSug) + "°";
+    } else {
+      const b = bearingDeg(cur, marks[0]);
+      $("bearingTxt").textContent = "peiling boei 1: " + CARD[Math.round(b/22.5)%16] + " " + Math.round(b) + "°";
+    }
   } else if (marks.length === 2) {
     const len = distM(marks[0], marks[1]);
     $("panelLbl").textContent = "BAANLENGTE · BOEI 1 ↔ BOEI 2";
