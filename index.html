@@ -50,6 +50,9 @@
   /* OSM-basistiles zijn licht — invert maakt er een kalme donkere kaart van.
      Alleen de basislaag: de betonning-laag houdt z'n echte boeikleuren. */
   .base-tiles .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(.8) saturate(.45) contrast(.9); }
+  /* lichte modus: klassieke waterkaart-look (OSM + betonning, ongefilterd) */
+  #map.light .base-tiles .leaflet-tile { filter: none; }
+  #map.light { background: #d8e2df; }
   .leaflet-control-attribution { background: rgba(14,18,17,.7) !important; color: rgba(255,255,255,.4) !important; font-size: 9px !important; }
   .leaflet-control-attribution a { color: rgba(255,255,255,.55) !important; }
   .boat-icon { filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
@@ -92,12 +95,14 @@
 
   #meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; min-height: 30px; flex-wrap: wrap; }
   #bearingTxt { font-size: 12.5px; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }
-  #axisBtn, #seaBtn {
+  #axisBtn, #seaBtn, #lightBtn {
     border: 1px solid rgba(255,255,255,.25); background: transparent;
     color: rgba(255,255,255,.7); border-radius: 10px; padding: 6px 11px; font-size: 12px; font-weight: 600;
   }
   #axisBtn { margin-left: auto; }
-  #axisBtn.on, #seaBtn.on { border-color: rgba(126,226,168,.5); color: #7ee2a8; }
+  #axisBtn.on, #seaBtn.on, #lightBtn.on { border-color: rgba(126,226,168,.5); color: #7ee2a8; }
+
+  #km.status { font-size: 23px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.25; }
 
   footer { flex: 0 0 auto; display: flex; align-items: stretch; gap: 10px; margin-top: 12px; }
   #actionBtn {
@@ -158,6 +163,7 @@
     <div id="meta">
       <span id="bearingTxt"></span>
       <button id="seaBtn" style="display:none">betonning</button>
+      <button id="lightBtn" style="display:none">licht</button>
       <button id="axisBtn" style="display:none">windas</button>
     </div>
   </div>
@@ -241,6 +247,11 @@ function initMap() {
   if (seaOn) seaLayer.addTo(map);
   $("seaBtn").style.display = "";
   $("seaBtn").classList.toggle("on", seaOn);
+  $("lightBtn").style.display = "";
+  if (localStorage.getItem("baanmeter-light") === "1") {
+    $("map").classList.add("light");
+    $("lightBtn").classList.add("on");
+  }
   trailLine = L.polyline([], { color: "rgba(255,255,255,.55)", weight: 2, interactive: false }).addTo(map);
   boatMarker = L.marker([cur.lat, cur.lon], { icon: boatSvg(0), interactive: false }).addTo(map);
   map.setView([cur.lat, cur.lon], 15);
@@ -382,16 +393,18 @@ function render() {
 
   if (marks.length === 0) {
     $("panelLbl").textContent = "BOEI 1";
-    $("km").innerHTML = cur ? "Klaar om te markeren" : "Vaar naar de plek<small> voor boei 1</small>";
+    $("km").classList.add("status");
+    $("km").innerHTML = cur ? "Klaar om te markeren — kies je baan" : "Vaar naar de plek voor boei 1";
     $("sub").textContent = "";
     $("target").style.display = "none";
-    $("presets").style.display = "none";
+    $("presets").style.display = "flex"; // baan kiezen kan al vóór het droppen
     $("actionBtn").textContent = "MARKEER BOEI 1";
     $("actionBtn").disabled = !cur;
     $("resetBtn").style.display = "none";
     $("bearingTxt").textContent = "";
   } else if (marks.length === 1 && cur) {
     const m = distM(marks[0], cur);
+    $("km").classList.remove("status");
     $("panelLbl").textContent = "AFSTAND TOT BOEI 1";
     $("km").innerHTML = (m/1000).toFixed(3) + "<small> km</small>";
     $("sub").innerHTML = (m/1852).toFixed(2) + "<small> NM</small>";
@@ -421,6 +434,7 @@ function render() {
     }
   } else if (marks.length === 2) {
     const len = distM(marks[0], marks[1]);
+    $("km").classList.remove("status");
     $("panelLbl").textContent = "BAANLENGTE · BOEI 1 ↔ BOEI 2";
     $("km").innerHTML = (len/1000).toFixed(3) + "<small> km</small>";
     let subTxt = (len/1852).toFixed(2) + "<small> NM</small>";
@@ -552,6 +566,11 @@ $("seaBtn").addEventListener("click", () => {
   seaOn = !seaOn;
   $("seaBtn").classList.toggle("on", seaOn);
   if (map && seaLayer) { seaOn ? seaLayer.addTo(map) : seaLayer.remove(); }
+});
+$("lightBtn").addEventListener("click", () => {
+  const on = $("map").classList.toggle("light");
+  $("lightBtn").classList.toggle("on", on);
+  localStorage.setItem("baanmeter-light", on ? "1" : "0");
 });
 // presets: het comité z'n vaste banen — NM + richting in één tik
 document.querySelectorAll("#presets button").forEach(btn => {
