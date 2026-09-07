@@ -47,8 +47,9 @@
     font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px #000;
   }
   .leaflet-container { font: inherit; background: #1a1f1d; }
-  /* OSM-tiles zijn licht — invert maakt er een kalme donkere kaart van */
-  .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(.8) saturate(.45) contrast(.9); }
+  /* OSM-basistiles zijn licht — invert maakt er een kalme donkere kaart van.
+     Alleen de basislaag: de betonning-laag houdt z'n echte boeikleuren. */
+  .base-tiles .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(.8) saturate(.45) contrast(.9); }
   .leaflet-control-attribution { background: rgba(14,18,17,.7) !important; color: rgba(255,255,255,.4) !important; font-size: 9px !important; }
   .leaflet-control-attribution a { color: rgba(255,255,255,.55) !important; }
   .boat-icon { filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
@@ -80,13 +81,23 @@
   #targetInput:focus { outline: none; border-color: #fff; }
   .unit { font-size: 14px; color: rgba(255,255,255,.6); }
 
+  /* presets: de vaste banen van het comité — NM + richting in één tik */
+  #presets { display: none; gap: 7px; margin-top: 10px; }
+  #presets button {
+    flex: 1; border: 1px solid rgba(255,255,255,.22); background: transparent; color: rgba(255,255,255,.75);
+    border-radius: 11px; padding: 10px 4px; font-size: 12.5px; font-weight: 600;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  #presets button.on { border-color: rgba(126,226,168,.55); color: #7ee2a8; background: rgba(126,226,168,.08); }
+
   #meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; min-height: 30px; flex-wrap: wrap; }
   #bearingTxt { font-size: 12.5px; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }
-  #axisBtn {
-    margin-left: auto; border: 1px solid rgba(255,255,255,.25); background: transparent;
+  #axisBtn, #seaBtn {
+    border: 1px solid rgba(255,255,255,.25); background: transparent;
     color: rgba(255,255,255,.7); border-radius: 10px; padding: 6px 11px; font-size: 12px; font-weight: 600;
   }
-  #axisBtn.on { border-color: rgba(126,226,168,.5); color: #7ee2a8; }
+  #axisBtn { margin-left: auto; }
+  #axisBtn.on, #seaBtn.on { border-color: rgba(126,226,168,.5); color: #7ee2a8; }
 
   footer { flex: 0 0 auto; display: flex; align-items: stretch; gap: 10px; margin-top: 12px; }
   #actionBtn {
@@ -137,8 +148,16 @@
       <span class="delta" id="delta">–</span>
     </div>
 
+    <div id="presets">
+      <button data-nm="1" data-side="1">1 NM ↑</button>
+      <button data-nm="1" data-side="-1">1 NM ↓</button>
+      <button data-nm="0.8" data-side="1">0.8 ↑</button>
+      <button data-nm="0.8" data-side="-1">0.8 ↓</button>
+    </div>
+
     <div id="meta">
       <span id="bearingTxt"></span>
+      <button id="seaBtn" style="display:none">betonning</button>
       <button id="axisBtn" style="display:none">windas</button>
     </div>
   </div>
@@ -160,8 +179,10 @@ let marks = [];       // [{lat,lon}] — max 2
 let cur = null;       // laatste fix
 let course = null;    // vaarrichting (GPS)
 let trail = [];
-let wind = null;      // {kn, deg} uit Open-Meteo (deg = waar de wind vandaan komt)
+let wind = null;      // {kn, deg} (deg = waar de wind vandaan komt)
 let axisOn = true;
+let seaOn = true;     // betonning-laag (OpenSeaMap)
+let suggestSide = 1;  // voorstel boei 2: 1 = upwind, -1 = downwind
 let wakeLock = null;
 
 const R = 6371000;
@@ -187,9 +208,9 @@ function destPoint(p, brgDeg, dM) {
 const CARD = ["N","NNO","NO","ONO","O","OZO","ZO","ZZO","Z","ZZW","ZW","WZW","W","WNW","NW","NNW"];
 
 // ---------- kaart ----------
-let map = null, tiles = null;
+let map = null, tiles = null, seaLayer = null;
 let markDots = [], legLine = null, courseLine = null, lenLabel = null, axisLine = null, trailLine = null, boatMarker = null;
-let suggestMarker = null; // spookboei: het voorstel voor boei 2, upwind op doelafstand
+let suggestMarker = null; // spookboei: het voorstel voor boei 2, op doelafstand langs de windas
 let didInitialCenter = false;
 
 function boatSvg(deg) {
@@ -211,8 +232,15 @@ function initMap() {
   if (map || typeof L === "undefined" || !cur) return;
   map = L.map("map", { zoomControl: false });
   tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap", maxZoom: 19,
+    attribution: "&copy; OpenStreetMap", maxZoom: 19, className: "base-tiles",
   }).addTo(map);
+  // betonning: vaarwegmarkering van OpenSeaMap als losse laag (echte kleuren)
+  seaLayer = L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenSeaMap", maxZoom: 19,
+  });
+  if (seaOn) seaLayer.addTo(map);
+  $("seaBtn").style.display = "";
+  $("seaBtn").classList.toggle("on", seaOn);
   trailLine = L.polyline([], { color: "rgba(255,255,255,.55)", weight: 2, interactive: false }).addTo(map);
   boatMarker = L.marker([cur.lat, cur.lon], { icon: boatSvg(0), interactive: false }).addTo(map);
   map.setView([cur.lat, cur.lon], 15);
@@ -271,9 +299,9 @@ function updateMap() {
     axisLine.remove(); axisLine = null;
   }
 
-  // spookboei: voorstel voor boei 2 — doelafstand recht upwind van boei 1
+  // spookboei: voorstel voor boei 2 — doelafstand langs de windas (up of down)
   if (axisOn && wind && marks.length === 1 && targetM > 0) {
-    const sug = destPoint(marks[0], wind.deg, targetM);
+    const sug = destPoint(marks[0], suggestSide === 1 ? wind.deg : (wind.deg + 180) % 360, targetM);
     if (!suggestMarker) {
       suggestMarker = L.marker([0, 0], {
         icon: L.divIcon({
@@ -357,6 +385,7 @@ function render() {
     $("km").innerHTML = cur ? "Klaar om te markeren" : "Vaar naar de plek<small> voor boei 1</small>";
     $("sub").textContent = "";
     $("target").style.display = "none";
+    $("presets").style.display = "none";
     $("actionBtn").textContent = "MARKEER BOEI 1";
     $("actionBtn").disabled = !cur;
     $("resetBtn").style.display = "none";
@@ -367,6 +396,7 @@ function render() {
     $("km").innerHTML = (m/1000).toFixed(3) + "<small> km</small>";
     $("sub").innerHTML = (m/1852).toFixed(2) + "<small> NM</small>";
     $("target").style.display = "flex";
+    $("presets").style.display = "flex";
     $("actionBtn").textContent = "MARKEER BOEI 2";
     $("actionBtn").disabled = false;
     $("resetBtn").style.display = "";
@@ -379,10 +409,10 @@ function render() {
     }
     // met wind erbij is de spookboei de actie: koers + afstand ernaartoe
     if (axisOn && wind && targetM > 0) {
-      const sug = destPoint(marks[0], wind.deg, targetM);
+      const sug = destPoint(marks[0], suggestSide === 1 ? wind.deg : (wind.deg + 180) % 360, targetM);
       const dSug = distM(cur, sug);
       const bSug = bearingDeg(cur, sug);
-      $("bearingTxt").textContent = "→ voorstel boei 2: " +
+      $("bearingTxt").textContent = "→ voorstel 2 (" + (suggestSide === 1 ? "upwind" : "downwind") + "): " +
         (dSug < 1000 ? Math.round(dSug) + " m" : (dSug/1000).toFixed(2) + " km") +
         " richting " + CARD[Math.round(bSug/22.5)%16] + " " + Math.round(bSug) + "°";
     } else {
@@ -397,6 +427,7 @@ function render() {
     if (cur) subTxt += '<small>   ·   ' + Math.round(distM(marks[1], cur)) + " m tot boei 2</small>";
     $("sub").innerHTML = subTxt;
     $("target").style.display = "none";
+    $("presets").style.display = "none";
     $("actionBtn").textContent = "NIEUWE BAAN";
     $("actionBtn").disabled = false;
     $("resetBtn").style.display = "none";
@@ -517,7 +548,25 @@ $("axisBtn").addEventListener("click", () => {
   render();
 });
 $("axisBtn").classList.add("on");
-$("targetInput").addEventListener("input", render);
+$("seaBtn").addEventListener("click", () => {
+  seaOn = !seaOn;
+  $("seaBtn").classList.toggle("on", seaOn);
+  if (map && seaLayer) { seaOn ? seaLayer.addTo(map) : seaLayer.remove(); }
+});
+// presets: het comité z'n vaste banen — NM + richting in één tik
+document.querySelectorAll("#presets button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    suggestSide = parseInt(btn.dataset.side, 10);
+    $("targetInput").value = (parseFloat(btn.dataset.nm) * 1.852).toFixed(3);
+    document.querySelectorAll("#presets button").forEach(b => b.classList.toggle("on", b === btn));
+    if (suggestMarker) { suggestMarker.remove(); suggestMarker = null; } // hercentreer op het nieuwe voorstel
+    render();
+  });
+});
+$("targetInput").addEventListener("input", () => {
+  document.querySelectorAll("#presets button").forEach(b => b.classList.remove("on"));
+  render();
+});
 window.addEventListener("resize", () => map && map.invalidateSize());
 
 // boeien overleven een refresh (zon + natte handen + safari…)
