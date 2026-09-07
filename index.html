@@ -93,14 +93,15 @@
   }
   #presets button.on { border-color: rgba(126,226,168,.55); color: #7ee2a8; background: rgba(126,226,168,.08); }
 
-  #meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; min-height: 30px; flex-wrap: wrap; }
+  #meta { display: flex; align-items: center; margin-top: 10px; min-height: 24px; }
   #bearingTxt { font-size: 12.5px; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }
-  #axisBtn, #seaBtn, #lightBtn {
-    border: 1px solid rgba(255,255,255,.25); background: transparent;
-    color: rgba(255,255,255,.7); border-radius: 10px; padding: 6px 11px; font-size: 12px; font-weight: 600;
+  /* kaartlagen horen óp de kaart — stapeltje linksboven, kompas rechtsboven */
+  #layers { position: absolute; top: 10px; left: 10px; z-index: 800; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+  #layers button {
+    border: 1px solid rgba(255,255,255,.22); background: rgba(14,18,17,.82);
+    color: rgba(255,255,255,.75); border-radius: 10px; padding: 6px 11px; font-size: 12px; font-weight: 600;
   }
-  #axisBtn { margin-left: auto; }
-  #axisBtn.on, #seaBtn.on, #lightBtn.on { border-color: rgba(126,226,168,.5); color: #7ee2a8; }
+  #layers button.on { border-color: rgba(126,226,168,.55); color: #7ee2a8; }
 
   #km.status { font-size: 23px; font-weight: 600; letter-spacing: -0.3px; line-height: 1.25; }
 
@@ -131,6 +132,11 @@
 <main>
   <div id="mapWrap">
     <div id="map"></div>
+    <div id="layers">
+      <button id="axisBtn" style="display:none">windas</button>
+      <button id="seaBtn" style="display:none">betonning</button>
+      <button id="lightBtn" style="display:none">licht</button>
+    </div>
     <div id="compass">
       <div id="compassBadge">
         <svg id="needle" width="26" height="26" viewBox="-13 -13 26 26">
@@ -162,9 +168,6 @@
 
     <div id="meta">
       <span id="bearingTxt"></span>
-      <button id="seaBtn" style="display:none">betonning</button>
-      <button id="lightBtn" style="display:none">licht</button>
-      <button id="axisBtn" style="display:none">windas</button>
     </div>
   </div>
 
