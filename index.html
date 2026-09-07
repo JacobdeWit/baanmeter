@@ -280,16 +280,43 @@ function updateMap() {
   boatMarker.setIcon(boatSvg(hdg ?? 0));
 }
 
-// ---------- wind (Open-Meteo, gratis, direct uit de browser) ----------
+// ---------- wind ----------
+// Eerst het dichtstbijzijnde ECHTE meetstation (KNMI + Rijkswaterstaat-
+// meetpalen, elke 10 min vers via windapp) — meetpalen óp het water krijgen
+// voorrang. Geen station binnen 35 km? Dan modelwind van Open-Meteo op je
+// eigen positie.
+const STATIONS_URL = "https://bbcyrlnehwnhquarnhil.supabase.co/rest/v1/station_latest?select=name,lat,lon,wind_kn,dir_deg,station_id";
+const STATIONS_KEY = "sb_publishable_T22jDT6WHlqcEN9sy6bj6A_cenh2YU8"; // read-only
+
 async function fetchWind() {
   if (!cur) return;
+  try {
+    const r = await fetch(STATIONS_URL, {
+      headers: { apikey: STATIONS_KEY, Authorization: "Bearer " + STATIONS_KEY },
+    });
+    const stations = (await r.json()).filter(s => s.wind_kn != null && s.dir_deg != null);
+    let best = null, bestW = Infinity;
+    for (const s of stations) {
+      const d = distM(cur, { lat: s.lat, lon: s.lon });
+      const w = s.station_id.startsWith("rws:") ? d * 0.7 : d; // waterpaal > vliegveld
+      if (w < bestW) { bestW = w; best = { ...s, d }; }
+    }
+    if (best && best.d <= 35000) {
+      wind = { kn: Math.round(best.wind_kn), deg: best.dir_deg };
+      const name = best.name.split(",")[0];
+      $("wind").textContent = wind.kn + " kn uit " + CARD[Math.round(wind.deg/22.5)%16] + " · " + name;
+      $("axisBtn").style.display = "";
+      render();
+      return;
+    }
+  } catch (_) { /* stations niet bereikbaar — probeer het model */ }
   try {
     const r = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + cur.lat.toFixed(3) +
       "&longitude=" + cur.lon.toFixed(3) + "&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn");
     const j = await r.json();
     if (j.current) {
       wind = { kn: Math.round(j.current.wind_speed_10m), deg: j.current.wind_direction_10m };
-      $("wind").textContent = wind.kn + " kn uit " + CARD[Math.round(wind.deg/22.5)%16];
+      $("wind").textContent = wind.kn + " kn uit " + CARD[Math.round(wind.deg/22.5)%16] + " · model";
       $("axisBtn").style.display = "";
       render();
     }
