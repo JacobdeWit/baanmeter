@@ -20,28 +20,15 @@
     padding: max(14px, env(safe-area-inset-top)) 18px max(16px, env(safe-area-inset-bottom));
     user-select: none; -webkit-user-select: none; overflow: hidden;
   }
-  header { display: flex; justify-content: space-between; align-items: baseline; flex: 0 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: baseline; flex: 0 0 auto; gap: 10px; }
   h1 { font-size: 14px; font-weight: 600; letter-spacing: 2.5px; color: rgba(255,255,255,.5); }
+  #hdrRight { display: flex; gap: 10px; align-items: baseline; }
+  #wind { font-size: 12px; color: rgba(255,255,255,.7); font-variant-numeric: tabular-nums; }
   #acc { font-size: 12px; color: rgba(255,255,255,.4); font-variant-numeric: tabular-nums; }
   #acc.good { color: #6ec59a; }
   #acc.bad { color: #e0a030; }
 
   main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-
-  /* ---- start ---- */
-  #startView { flex: 1; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center; }
-  #dropBtn {
-    width: 100%; max-width: 430px; border: 0; border-radius: 20px;
-    background: #175E54; color: #fff; font-weight: 700;
-    font-size: 24px; padding: 42px 20px; letter-spacing: .3px;
-    transition: transform .1s;
-  }
-  #dropBtn:active { transform: scale(.97); }
-  #dropBtn:disabled { background: #232826; color: rgba(255,255,255,.3); }
-  .hint { font-size: 13px; color: rgba(255,255,255,.45); text-align: center; line-height: 1.55; max-width: 300px; }
-
-  /* ---- live ---- */
-  #liveView { display: none; flex: 1; flex-direction: column; min-height: 0; }
   #map {
     flex: 1 1 auto; min-height: 0; border-radius: 16px; margin: 10px 0 4px;
     background: #1a1f1d; /* tiles weg? dan blijft het gewoon een radar */
@@ -52,84 +39,106 @@
   .leaflet-control-attribution { background: rgba(14,18,17,.7) !important; color: rgba(255,255,255,.4) !important; font-size: 9px !important; }
   .leaflet-control-attribution a { color: rgba(255,255,255,.55) !important; }
   .boat-icon { filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+  .lenlabel {
+    background: rgba(14,18,17,.85); color: #7ee2a8; font-weight: 700; font-size: 12px;
+    padding: 3px 8px; border-radius: 8px; white-space: nowrap; font-variant-numeric: tabular-nums;
+    border: 1px solid rgba(126,226,168,.35);
+  }
 
-  #numbers { flex: 0 0 auto; text-align: left; }
+  #panel { flex: 0 0 auto; }
   .lbl { font-size: 10.5px; font-weight: 600; letter-spacing: 1.6px; color: rgba(255,255,255,.42); }
-  #km { font-size: min(19vw, 92px); line-height: 1.02; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
+  #km { font-size: min(16.5vw, 84px); line-height: 1.02; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
   #km small { font-size: .38em; font-weight: 500; color: rgba(255,255,255,.5); letter-spacing: 0; }
-  #nm { font-size: min(7.5vw, 34px); font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.78); }
-  #nm small { font-size: .6em; color: rgba(255,255,255,.42); font-weight: 500; }
+  #sub { font-size: min(6.5vw, 26px); font-weight: 600; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.78); }
+  #sub small { font-size: .65em; color: rgba(255,255,255,.42); font-weight: 500; }
 
   #target {
-    margin-top: 14px; padding: 13px 15px; border-radius: 13px;
+    margin-top: 12px; padding: 12px 15px; border-radius: 13px;
     background: rgba(255,255,255,.07); display: flex; align-items: center; gap: 9px;
     font-variant-numeric: tabular-nums; transition: background .3s;
   }
   #target.hit { background: rgba(46,125,79,.4); }
-  #target .delta { margin-left: auto; font-weight: 700; font-size: 16.5px; }
+  #target .delta { margin-left: auto; font-weight: 700; font-size: 16px; }
   #target.hit .delta { color: #7ee2a8; }
   #targetInput {
-    width: 72px; background: transparent; border: 0; border-bottom: 1px solid rgba(255,255,255,.3);
+    width: 70px; background: transparent; border: 0; border-bottom: 1px solid rgba(255,255,255,.3);
     color: #fff; font-size: 16px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums;
   }
   #targetInput:focus { outline: none; border-color: #fff; }
   .unit { font-size: 14px; color: rgba(255,255,255,.6); }
 
-  footer { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; margin-top: 14px; }
-  #bearingTxt { font-size: 13px; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }
-  #resetBtn {
-    margin-left: auto; border: 1px solid rgba(255,155,142,.35); background: transparent; color: #ff9b8e;
-    border-radius: 12px; padding: 11px 18px; font-size: 14px; font-weight: 600;
+  #meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; min-height: 30px; flex-wrap: wrap; }
+  #bearingTxt { font-size: 12.5px; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }
+  #axisBtn {
+    margin-left: auto; border: 1px solid rgba(255,255,255,.25); background: transparent;
+    color: rgba(255,255,255,.7); border-radius: 10px; padding: 6px 11px; font-size: 12px; font-weight: 600;
   }
-  #err { color: #e0a030; font-size: 13px; text-align: center; margin-top: 10px; display: none; line-height: 1.5; }
+  #axisBtn.on { border-color: rgba(126,226,168,.5); color: #7ee2a8; }
+
+  footer { flex: 0 0 auto; display: flex; align-items: stretch; gap: 10px; margin-top: 12px; }
+  #actionBtn {
+    flex: 1; border: 0; border-radius: 15px; background: #175E54; color: #fff;
+    font-weight: 700; font-size: 18px; padding: 17px 14px; letter-spacing: .2px;
+    transition: transform .1s;
+  }
+  #actionBtn:active { transform: scale(.98); }
+  #actionBtn:disabled { background: #232826; color: rgba(255,255,255,.3); }
+  #resetBtn {
+    border: 1px solid rgba(255,155,142,.35); background: transparent; color: #ff9b8e;
+    border-radius: 15px; padding: 0 18px; font-size: 14px; font-weight: 600; display: none;
+  }
+  #err { color: #e0a030; font-size: 13px; text-align: center; margin-top: 8px; display: none; line-height: 1.5; }
 </style>
 </head>
 <body>
 <header>
   <h1>BAANMETER</h1>
-  <span id="acc">gps zoeken…</span>
+  <div id="hdrRight">
+    <span id="wind"></span>
+    <span id="acc">gps zoeken…</span>
+  </div>
 </header>
 
 <main>
-  <div id="startView">
-    <button id="dropBtn" disabled>MARKEER PUNT</button>
-    <p class="hint">Druk op het moment dat je de boei dropt.<br>Daarna zie je live hoe ver je van dat punt vaart — tot op de meter.</p>
-  </div>
+  <div id="map"></div>
 
-  <div id="liveView">
-    <div id="map"></div>
+  <div id="panel">
+    <span class="lbl" id="panelLbl">BOEI 1</span>
+    <div id="km">Vaar naar de plek<small> voor boei 1</small></div>
+    <div id="sub"></div>
 
-    <div id="numbers">
-      <span class="lbl">AFSTAND TOT PUNT</span>
-      <div id="km">0.000<small> km</small></div>
-      <div id="nm">0.00<small> NM</small></div>
-
-      <div id="target">
-        <span class="lbl">DOEL</span>
-        <input id="targetInput" type="number" inputmode="decimal" step="0.05" min="0.05" value="1.800">
-        <span class="unit">km</span>
-        <span class="delta" id="delta">–</span>
-      </div>
+    <div id="target" style="display:none">
+      <span class="lbl">DOEL</span>
+      <input id="targetInput" type="number" inputmode="decimal" step="0.05" min="0.05" value="1.800">
+      <span class="unit">km</span>
+      <span class="delta" id="delta">–</span>
     </div>
 
-    <footer>
-      <span id="bearingTxt">peiling: –</span>
-      <button id="resetBtn">Nieuw punt</button>
-    </footer>
+    <div id="meta">
+      <span id="bearingTxt"></span>
+      <button id="axisBtn" style="display:none">windas</button>
+    </div>
   </div>
+
+  <footer>
+    <button id="actionBtn" disabled>MARKEER BOEI 1</button>
+    <button id="resetBtn">Opnieuw</button>
+  </footer>
 </main>
 <p id="err"></p>
 
 <script>
 "use strict";
 // Baanmeter — wedstrijdbanen uitleggen op exacte lengte.
-// Punt markeren → live afstand (km 3 dec / NM 2 dec) + radarweergave:
-// het punt in het midden, afstandsringen, de boot als driehoek met spoor.
+// Boei 1 markeren → varen (afstand + doel + windas) → boei 2 markeren →
+// baanlijn met lengte, en hoeveel graden de baan van de windas af ligt.
 const $ = id => document.getElementById(id);
-let mark = null;      // {lat, lon}
-let cur = null;       // laatste fix {lat, lon}
-let course = null;    // vaarrichting in graden (uit GPS)
-let trail = [];       // [{lat, lon, t}]
+let marks = [];       // [{lat,lon}] — max 2
+let cur = null;       // laatste fix
+let course = null;    // vaarrichting (GPS)
+let trail = [];
+let wind = null;      // {kn, deg} uit Open-Meteo (deg = waar de wind vandaan komt)
+let axisOn = true;
 let wakeLock = null;
 
 const R = 6371000;
@@ -146,14 +155,18 @@ function bearingDeg(a, b) {
   const x = Math.cos(f1)*Math.sin(f2) - Math.sin(f1)*Math.cos(f2)*Math.cos(dl);
   return (Math.atan2(y,x)*180/Math.PI + 360) % 360;
 }
+function destPoint(p, brgDeg, dM) {
+  const br = brgDeg*Math.PI/180, f1 = p.lat*Math.PI/180, l1 = p.lon*Math.PI/180, dr = dM/R;
+  const f2 = Math.asin(Math.sin(f1)*Math.cos(dr) + Math.cos(f1)*Math.sin(dr)*Math.cos(br));
+  const l2 = l1 + Math.atan2(Math.sin(br)*Math.sin(dr)*Math.cos(f1), Math.cos(dr)-Math.sin(f1)*Math.sin(f2));
+  return { lat: f2*180/Math.PI, lon: ((l2*180/Math.PI)+540)%360-180 };
+}
 const CARD = ["N","NNO","NO","ONO","O","OZO","ZO","ZZO","Z","ZZW","ZW","WZW","W","WNW","NW","NNW"];
 
-// ---------- kaart-radar ----------
-// Echte kaart als ondergrond (weet je waar je vaart), met de radar-laag
-// erop: 500m-ringen, doelring, boei, boot + spoor. Geen tiles (geen
-// bereik)? Dan blijft het gewoon een donkere radar — alles blijft werken.
-let map = null, ringLayers = [], targetRing = null, trailLine = null, markDot = null, boatMarker = null;
-let fittedForTarget = 0;
+// ---------- kaart ----------
+let map = null, tiles = null;
+let markDots = [], legLine = null, courseLine = null, lenLabel = null, axisLine = null, trailLine = null, boatMarker = null;
+let didInitialCenter = false;
 
 function boatSvg(deg) {
   return L.divIcon({
@@ -162,87 +175,154 @@ function boatSvg(deg) {
     iconSize: [24, 24], iconAnchor: [12, 12],
   });
 }
+function buoySvg() {
+  return L.divIcon({
+    className: "boat-icon",
+    html: '<svg width="18" height="18" viewBox="-9 -9 18 18"><circle r="7" fill="#e0a030" stroke="#0e1211" stroke-width="2"/></svg>',
+    iconSize: [18, 18], iconAnchor: [9, 9],
+  });
+}
 
 function initMap() {
-  if (map || typeof L === "undefined" || !mark) return;
+  if (map || typeof L === "undefined" || !cur) return;
   map = L.map("map", { zoomControl: false });
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap",
-    maxZoom: 19,
-  }).addTo(map);
-  markDot = L.circleMarker([mark.lat, mark.lon], {
-    radius: 7, color: "#0e1211", weight: 2, fillColor: "#e0a030", fillOpacity: 1, interactive: false,
+  tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap", maxZoom: 19,
   }).addTo(map);
   trailLine = L.polyline([], { color: "rgba(255,255,255,.55)", weight: 2, interactive: false }).addTo(map);
-  boatMarker = L.marker([mark.lat, mark.lon], { icon: boatSvg(0), interactive: false }).addTo(map);
-  map.setView([mark.lat, mark.lon], 14);
+  boatMarker = L.marker([cur.lat, cur.lon], { icon: boatSvg(0), interactive: false }).addTo(map);
+  map.setView([cur.lat, cur.lon], 15);
+  didInitialCenter = true;
 }
 
 function updateMap() {
-  if (!mark || !cur) return;
+  if (!cur) return;
   initMap();
   if (!map) return;
-  const targetM = (parseFloat($("targetInput").value) || 1.8) * 1000;
 
-  // 500m-ringen rond het punt, tot net voorbij doel/afstand
-  const wanted = Math.ceil(Math.max(targetM * 1.25, distM(mark, cur) * 1.15, 500) / 500);
-  if (ringLayers.length !== wanted) {
-    ringLayers.forEach(r => r.remove());
-    ringLayers = [];
-    for (let i = 1; i <= wanted; i++) {
-      ringLayers.push(L.circle([mark.lat, mark.lon], {
-        radius: i * 500, color: "rgba(255,255,255,.22)", weight: 1, fill: false, interactive: false,
-      }).addTo(map));
+  // boeien
+  while (markDots.length < marks.length) {
+    markDots.push(L.marker([0,0], { icon: buoySvg(), interactive: false }).addTo(map));
+  }
+  marks.forEach((m, i) => markDots[i].setLatLng([m.lat, m.lon]));
+
+  // meetlijn: boei 1 → boot (gestippeld, zolang boei 2 er niet is)
+  if (marks.length === 1) {
+    if (!legLine) {
+      legLine = L.polyline([], { color: "rgba(255,255,255,.5)", weight: 1.5, dashArray: "4 5", interactive: false }).addTo(map);
     }
+    legLine.setLatLngs([[marks[0].lat, marks[0].lon], [cur.lat, cur.lon]]);
+  } else if (legLine) {
+    legLine.remove(); legLine = null;
   }
-  ringLayers.forEach(r => r.setLatLng([mark.lat, mark.lon]));
 
-  if (!targetRing) {
-    targetRing = L.circle([mark.lat, mark.lon], {
-      radius: targetM, color: "#7ee2a8", weight: 1.5, dashArray: "6 5", fill: false, opacity: .8, interactive: false,
-    }).addTo(map);
+  // de baan: vaste lijn tussen boei 1 en 2, met lengte-label op het midden
+  if (marks.length === 2) {
+    const a = marks[0], b = marks[1];
+    if (!courseLine) {
+      courseLine = L.polyline([], { color: "#7ee2a8", weight: 3, interactive: false }).addTo(map);
+      lenLabel = L.marker([0,0], { icon: L.divIcon({ className: "", html: "", iconSize: null }), interactive: false }).addTo(map);
+    }
+    courseLine.setLatLngs([[a.lat, a.lon], [b.lat, b.lon]]);
+    const mid = { lat: (a.lat+b.lat)/2, lon: (a.lon+b.lon)/2 };
+    lenLabel.setLatLng([mid.lat, mid.lon]);
+    lenLabel.setIcon(L.divIcon({
+      className: "",
+      html: '<div class="lenlabel">' + (distM(a,b)/1000).toFixed(3) + ' km</div>',
+      iconSize: null, iconAnchor: [28, -8],
+    }));
   }
-  targetRing.setLatLng([mark.lat, mark.lon]);
-  if (targetRing.getRadius() !== targetM) targetRing.setRadius(targetM);
 
-  markDot.setLatLng([mark.lat, mark.lon]);
+  // windas door boei 1 — de lijn waarlangs je een baan hoort te leggen
+  if (axisOn && wind && marks.length >= 1) {
+    const targetM = (parseFloat($("targetInput").value) || 1.8) * 1000;
+    const len = Math.max(targetM * 1.4, 1500);
+    const p1 = destPoint(marks[0], wind.deg, len);            // naar de wind toe (upwind)
+    const p2 = destPoint(marks[0], (wind.deg+180)%360, len);  // van de wind af
+    if (!axisLine) {
+      axisLine = L.polyline([], { color: "rgba(140,190,255,.55)", weight: 1.5, dashArray: "8 7", interactive: false }).addTo(map);
+    }
+    axisLine.setLatLngs([[p1.lat, p1.lon], [marks[0].lat, marks[0].lon], [p2.lat, p2.lon]]);
+  } else if (axisLine) {
+    axisLine.remove(); axisLine = null;
+  }
+
   trailLine.setLatLngs(trail.map(p => [p.lat, p.lon]));
 
-  // vaarrichting: GPS-heading, anders uit de laatste twee spoorpunten
   let hdg = course;
-  if (hdg == null && trail.length > 1) {
-    hdg = bearingDeg(trail[trail.length - 2], trail[trail.length - 1]);
-  }
+  if (hdg == null && trail.length > 1) hdg = bearingDeg(trail[trail.length-2], trail[trail.length-1]);
   boatMarker.setLatLng([cur.lat, cur.lon]);
   boatMarker.setIcon(boatSvg(hdg ?? 0));
-
-  // eenmalig (en bij doelwijziging) alles in beeld; daarna is de kaart van de gebruiker
-  if (fittedForTarget !== targetM) {
-    fittedForTarget = targetM;
-    map.fitBounds(targetRing.getBounds().pad(0.08));
-  }
 }
+
+// ---------- wind (Open-Meteo, gratis, direct uit de browser) ----------
+async function fetchWind() {
+  if (!cur) return;
+  try {
+    const r = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + cur.lat.toFixed(3) +
+      "&longitude=" + cur.lon.toFixed(3) + "&current=wind_speed_10m,wind_direction_10m&wind_speed_unit=kn");
+    const j = await r.json();
+    if (j.current) {
+      wind = { kn: Math.round(j.current.wind_speed_10m), deg: j.current.wind_direction_10m };
+      $("wind").textContent = wind.kn + " kn uit " + CARD[Math.round(wind.deg/22.5)%16];
+      $("axisBtn").style.display = "";
+      render();
+    }
+  } catch (_) { /* geen bereik — wind komt later wel */ }
+}
+setInterval(fetchWind, 10 * 60 * 1000);
 
 // ---------- ui ----------
 function render() {
-  if (!mark || !cur) return;
-  const m = distM(mark, cur);
-  $("km").innerHTML = (m/1000).toFixed(3) + "<small> km</small>";
-  $("nm").innerHTML = (m/1852).toFixed(2) + "<small> NM</small>";
-
   const targetM = parseFloat($("targetInput").value || "0") * 1000;
-  if (targetM > 0) {
-    const diff = targetM - m;
-    const hit = Math.abs(diff) <= 15; // binnen 15 m = raak (gps is toch ±5 m)
-    $("target").classList.toggle("hit", hit);
-    $("delta").textContent = hit ? "✓ hier droppen" :
-      (diff > 0 ? "nog " + Math.round(diff) + " m" : Math.round(-diff) + " m voorbij");
-  } else {
-    $("delta").textContent = "–";
-  }
 
-  const b = bearingDeg(cur, mark);
-  $("bearingTxt").textContent = "peiling naar punt: " + CARD[Math.round(b/22.5) % 16] + " " + Math.round(b) + "°";
+  if (marks.length === 0) {
+    $("panelLbl").textContent = "BOEI 1";
+    $("km").innerHTML = cur ? "Klaar om te markeren" : "Vaar naar de plek<small> voor boei 1</small>";
+    $("sub").textContent = "";
+    $("target").style.display = "none";
+    $("actionBtn").textContent = "MARKEER BOEI 1";
+    $("actionBtn").disabled = !cur;
+    $("resetBtn").style.display = "none";
+    $("bearingTxt").textContent = "";
+  } else if (marks.length === 1 && cur) {
+    const m = distM(marks[0], cur);
+    $("panelLbl").textContent = "AFSTAND TOT BOEI 1";
+    $("km").innerHTML = (m/1000).toFixed(3) + "<small> km</small>";
+    $("sub").innerHTML = (m/1852).toFixed(2) + "<small> NM</small>";
+    $("target").style.display = "flex";
+    $("actionBtn").textContent = "MARKEER BOEI 2";
+    $("actionBtn").disabled = false;
+    $("resetBtn").style.display = "";
+    if (targetM > 0) {
+      const diff = targetM - m;
+      const hit = Math.abs(diff) <= 15;
+      $("target").classList.toggle("hit", hit);
+      $("delta").textContent = hit ? "✓ hier droppen" :
+        (diff > 0 ? "nog " + Math.round(diff) + " m" : Math.round(-diff) + " m voorbij");
+    }
+    const b = bearingDeg(cur, marks[0]);
+    $("bearingTxt").textContent = "peiling boei 1: " + CARD[Math.round(b/22.5)%16] + " " + Math.round(b) + "°";
+  } else if (marks.length === 2) {
+    const len = distM(marks[0], marks[1]);
+    $("panelLbl").textContent = "BAANLENGTE · BOEI 1 ↔ BOEI 2";
+    $("km").innerHTML = (len/1000).toFixed(3) + "<small> km</small>";
+    let subTxt = (len/1852).toFixed(2) + "<small> NM</small>";
+    if (cur) subTxt += '<small>   ·   ' + Math.round(distM(marks[1], cur)) + " m tot boei 2</small>";
+    $("sub").innerHTML = subTxt;
+    $("target").style.display = "none";
+    $("actionBtn").textContent = "NIEUWE BAAN";
+    $("actionBtn").disabled = false;
+    $("resetBtn").style.display = "none";
+    if (wind) {
+      const courseBrg = bearingDeg(marks[0], marks[1]);
+      let off = Math.abs(((courseBrg - wind.deg) % 180 + 180) % 180);
+      if (off > 90) off = 180 - off;
+      $("bearingTxt").textContent = "baan ligt " + Math.round(off) + "° van de windas" + (off <= 10 ? " ✓" : "");
+    } else {
+      $("bearingTxt").textContent = "";
+    }
+  }
   updateMap();
 }
 
@@ -253,10 +333,10 @@ function onFix(pos) {
   $("acc").textContent = "gps ±" + Math.round(acc) + " m";
   $("acc").classList.toggle("good", acc <= 8);
   $("acc").classList.toggle("bad", acc > 15);
-  $("dropBtn").disabled = false;
   $("err").style.display = "none";
+  if (!wind) fetchWind();
 
-  if (mark) {
+  if (marks.length >= 1) {
     const last = trail[trail.length - 1];
     if (!last || Date.now() - last.t > 3000) {
       trail.push({ ...cur, t: Date.now() });
@@ -272,32 +352,6 @@ function onErr(e) {
     : "Geen GPS-fix. Ga naar buiten / check je locatie-instellingen.";
 }
 
-// ?demo — laat de app varen zonder GPS (voor op de bank)
-if (new URLSearchParams(location.search).has("demo")) {
-  mark = { lat: 52.3300, lon: 5.0900 };
-  course = 12;
-  trail = [];
-  let step = 0;
-  const demoTick = () => {
-    step = Math.min(step + 1, 46);
-    const p = {
-      lat: 52.3300 + 0.01530 * step / 40,
-      lon: 5.0900 + 0.0028 * Math.sin(step / 40 * Math.PI * 1.2),
-    };
-    cur = p;
-    trail.push({ ...p, t: Date.now() });
-    $("acc").textContent = "demo · gps ±4 m";
-    $("acc").classList.add("good");
-    $("startView").style.display = "none";
-    $("liveView").style.display = "flex";
-    render();
-  };
-  demoTick();
-  setInterval(demoTick, 800);
-} else {
-  navigator.geolocation.watchPosition(onFix, onErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
-}
-
 async function keepAwake() {
   try { wakeLock = await navigator.wakeLock.request("screen"); } catch (_) {}
 }
@@ -306,35 +360,75 @@ document.addEventListener("visibilitychange", () => {
 });
 keepAwake();
 
-$("dropBtn").addEventListener("click", () => {
+function persist() {
+  localStorage.setItem("baanmeter-marks", JSON.stringify(marks));
+}
+
+$("actionBtn").addEventListener("click", () => {
+  if (marks.length === 2) { // NIEUWE BAAN
+    if (!confirm("Baan wissen en opnieuw beginnen?")) return;
+    marks = []; trail = [];
+    markDots.forEach(d => d.remove()); markDots = [];
+    if (courseLine) { courseLine.remove(); courseLine = null; }
+    if (lenLabel) { lenLabel.remove(); lenLabel = null; }
+    persist(); render();
+    return;
+  }
   if (!cur) return;
-  mark = { ...cur };
-  trail = [{ ...cur, t: Date.now() }];
-  localStorage.setItem("baanmeter-mark", JSON.stringify(mark));
-  $("startView").style.display = "none";
-  $("liveView").style.display = "flex";
+  marks.push({ ...cur });
+  if (marks.length === 1) trail = [{ ...cur, t: Date.now() }];
   if (navigator.vibrate) navigator.vibrate(80);
-  render();
+  persist(); render();
 });
 $("resetBtn").addEventListener("click", () => {
-  if (!confirm("Punt wissen en opnieuw beginnen?")) return;
-  mark = null; trail = [];
-  localStorage.removeItem("baanmeter-mark");
-  $("liveView").style.display = "none";
-  $("startView").style.display = "flex";
+  if (!confirm("Boei 1 wissen?")) return;
+  marks = []; trail = [];
+  markDots.forEach(d => d.remove()); markDots = [];
+  persist(); render();
 });
+$("axisBtn").addEventListener("click", () => {
+  axisOn = !axisOn;
+  $("axisBtn").classList.toggle("on", axisOn);
+  render();
+});
+$("axisBtn").classList.add("on");
 $("targetInput").addEventListener("input", render);
 window.addEventListener("resize", () => map && map.invalidateSize());
 
-// punt overleeft een refresh (zon + natte handen + safari…)
-const saved = localStorage.getItem("baanmeter-mark");
-if (saved) {
-  try {
-    mark = JSON.parse(saved);
-    $("startView").style.display = "none";
-    $("liveView").style.display = "flex";
-  } catch (_) {}
+// boeien overleven een refresh (zon + natte handen + safari…)
+try {
+  const saved = JSON.parse(localStorage.getItem("baanmeter-marks") || "[]");
+  if (Array.isArray(saved) && saved.length) marks = saved.slice(0, 2);
+} catch (_) {}
+
+// ?demo — laat de app varen zonder GPS (voor op de bank)
+if (new URLSearchParams(location.search).has("demo")) {
+  wind = { kn: 14, deg: 25 };
+  $("wind").textContent = "14 kn uit NNO";
+  $("axisBtn").style.display = "";
+  marks = [];
+  let step = -3;
+  const demoTick = () => {
+    step = Math.min(step + 1, 52);
+    if (step < 0) { cur = { lat: 52.3300, lon: 5.0900 }; render(); return; }
+    if (step === 0 && marks.length === 0) { marks = [{ lat: 52.3300, lon: 5.0900 }]; trail = []; }
+    const p = {
+      lat: 52.3300 + 0.01455 * Math.min(step, 44) / 40,
+      lon: 5.0900 + 0.0060 * Math.min(step, 44) / 40 + 0.0016 * Math.sin(Math.min(step, 44) / 40 * Math.PI),
+    };
+    cur = p;
+    trail.push({ ...p, t: Date.now() });
+    if (step === 44 && marks.length === 1) marks.push({ ...p });
+    $("acc").textContent = "demo · gps ±4 m";
+    $("acc").classList.add("good");
+    render();
+  };
+  demoTick();
+  setInterval(demoTick, 700);
+} else {
+  navigator.geolocation.watchPosition(onFix, onErr, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
 }
+render();
 </script>
 </body>
 </html>
