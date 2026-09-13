@@ -484,9 +484,17 @@ function onFix(pos) {
 }
 function onErr(e) {
   $("err").style.display = "block";
-  $("err").textContent = e.code === 1
-    ? "Geen toestemming voor locatie — zet locatietoegang aan voor deze site."
-    : "Geen GPS-fix. Ga naar buiten / check je locatie-instellingen.";
+  if (e.code === 1) {
+    // eenmaal "Sta niet toe" getikt = geen nieuwe vraag — alleen instellingen helpen
+    $("err").innerHTML =
+      "<b>Geen toestemming voor locatie.</b><br>" +
+      "iPhone: Instellingen → Privacy &amp; beveiliging → Locatievoorzieningen → " +
+      "<b>Safari-websites</b> (of <b>Chrome</b>) → “Bij gebruik van app”. " +
+      "In Safari kan het ook via <b>AA</b> in de adresbalk → Websitevoorkeuren → Locatie → Sta toe. " +
+      "Daarna deze pagina herladen.";
+  } else {
+    $("err").textContent = "Geen GPS-fix. Ga naar buiten / check je locatie-instellingen.";
+  }
 }
 
 // ---------- kompas ----------
